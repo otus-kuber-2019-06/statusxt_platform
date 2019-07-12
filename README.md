@@ -35,8 +35,8 @@ kubectl delete pod --all -n kube-system
 kubectl get componentstatuses
 ```
 - механизмы обеспечения отказоустойчивости различны:
-apiserver загружается из /etc/kubernetes/manifests и управляется kubelet
-coredns управляется Deployment, который создает соответствующий ReplicaSet
+apiserver загружается из /etc/kubernetes/manifests и управляется kubelet;
+coredns управляется Deployment, который создает соответствующий ReplicaSet;
 kube-proxy управляется DaemonSet
 - создан образ контейнера с простейшим веб-сервером и загружен на DockerHub:
 ```
@@ -52,7 +52,7 @@ kubectl get pods
 kubectl describe pod
 ```
 - в pod добавлен init контейнер
-- для того, чтобы файлы, созданные в init контейнере, были доступны основному контейнеру в pod использован volume типа emptyDir
+- для того, чтобы файлы, созданные в init контейнере, были доступны основному контейнеру, в pod использован volume типа emptyDir
 - проверена работоспособность приложения
 ```
 kubectl delete pod web

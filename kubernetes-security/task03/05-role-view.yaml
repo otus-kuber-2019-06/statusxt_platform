@@ -1,0 +1,24 @@
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: view-ns
+  namespace: dev
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: view-ns-binding
+  namespace: dev
+subjects:
+- kind: ServiceAccount
+  name: ken
+  namespace: dev
+roleRef:
+  kind: Role
+  name: view-ns
+  apiGroup: rbac.authorization.k8s.io

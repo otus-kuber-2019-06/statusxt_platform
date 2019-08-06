@@ -5,7 +5,7 @@ statusxt platform repository
 
 # Table of content
 - [Homework-1 kubernetes-intro](#homework-1-kubernetes-intro)
-
+- [Homework-2 kubernetes-security](#homework-2-kubernetes-security)
 
 # Homework 1 kubernetes-intro
 ## 1.1 Что было сделано
@@ -74,3 +74,163 @@ kubectl port-forward --address 0.0.0.0 pod/web 8000:8000
 curl http://localhost:8000/index.html
 ```
 
+# Homework 2 kubernetes-security
+## 2.1 Что было сделано
+### 2.1.1 task01
+- создан Service Account bob, ему дана роль admin в рамках всего кластера
+- создан Service Account dave без доступа к кластеру
+```
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bob
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bob
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: bob
+    namespace: default
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dave
+```
+### 2.1.2 task02
+- создан Namespace prometheus
+- создан Service Account carol в этом Namespace
+- всем Service Account в Namespace prometheus дана возможность делать get, list, watch в отношении Pods всего кластера
+```
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: prometheus
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: carol
+  namespace: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pod-read
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pod-read
+subjects:
+- kind: Group
+  name: system:serviceaccounts:prometheus
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: pod-read
+  apiGroup: rbac.authorization.k8s.io
+```
+### 2.1.3 task03
+- создан Namespace dev
+- создан Service Account jane в Namespace dev
+- jane дана роль admin в рамках Namespace dev
+- создан Service Account ken в Namespace dev
+- ken дана роль view в рамках Namespace dev
+```
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dev
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jane
+  namespace: dev
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ken
+  namespace: dev
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: admin-ns
+  namespace: dev
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: admin-ns-binding
+  namespace: dev
+subjects:
+- kind: ServiceAccount
+  name: jane
+  namespace: dev
+roleRef:
+  kind: Role
+  name: admin-ns
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: view-ns
+  namespace: dev
+rules:
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: view-ns-binding
+  namespace: dev
+subjects:
+- kind: ServiceAccount
+  name: ken
+  namespace: dev
+roleRef:
+  kind: Role
+  name: view-ns
+  apiGroup: rbac.authorization.k8s.io
+```
+
+## 2.2 Как запустить проект
+в kubernetes-security:
+```
+kubectl apply -f ./task01/
+kubectl apply -f ./task02/
+kubectl apply -f ./task03/
+```
+
+## 2.3 Как проверить
+```
+kubectl get serviceaccounts
+kubectl get namespaces
+kubectl get serviceaccounts -n dev
+kubectl get clusterrole
+kubectl get clusterrolebindings 
+```

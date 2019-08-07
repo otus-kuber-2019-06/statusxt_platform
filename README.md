@@ -6,6 +6,7 @@ statusxt platform repository
 # Table of content
 - [Homework-1 kubernetes-intro](#homework-1-kubernetes-intro)
 - [Homework-2 kubernetes-security](#homework-2-kubernetes-security)
+- [Homework-3 kubernetes-networks](#homework-3-kubernetes-networks)
 
 # Homework 1 kubernetes-intro
 ## 1.1 Что было сделано
@@ -233,4 +234,95 @@ kubectl get namespaces
 kubectl get serviceaccounts -n dev
 kubectl get clusterrole
 kubectl get clusterrolebindings 
+```
+
+# Homework 3 kubernetes-networks
+## 3.1 Что было сделано
+- добавлены проверки в описание пода kubernetes-intro/web-pod.yaml
+```
+      livenessProbe:
+        tcpSocket:
+          port: 80
+      readinessProbe:
+        httpGet:
+          path: /index.html
+          port: 8000
+```
+- проверка готовности контейнера завершается неудачно
+```
+ kubectl describe pod/web
+```
+- создан deployment web-deploy.yaml
+- добавьте блок strategy в манифест (web-deploy.yaml)
+```
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 0
+    maxSurge: 100%
+```
+- опробованы разные варианты деплоя с крайними значениями maxSurge и maxUnavailable (оба 0, оба 100%, 0 и 100%), за процессом можно наблюдать при помощи ()
+- создан и применен манифест для сервиса clusterip web-svc-cip.yaml
+```
+kubectl apply -f web-svc-cip.yaml
+kubectl get services
+curl http://<CLUSTER-IP>/index.html
+ping <CLUSTER-IP>
+arp -an
+ip addr show
+iptables --list -nv -t nat
+```
+- включен IPVS для kube-proxy - исправлен ConfigMap (конфигурация Pod, хранящаяся в кластере)
+```
+kubectl --namespace kube-system edit configmap/kube-proxy
+kubectl --namespace kube-system delete pod --selector='k8s-app=kube-proxy'
+iptables-restore /tmp/iptables.cleanup
+```
+- установлен MetalLB
+```
+kubectl apply -f https://raw.githubusercontent.com/google/metallb/v0.8.0/manifests/metallb.yaml
+kubectl --namespace metallb-system get all
+```
+- балансировщик настроен с помощью ConfigMap - создан манифест metallb-config.yaml
+- создан, применен и проверен манифест web-svc-lb.yaml:
+```
+kubectl apply -f web-svc-lb.yaml
+kubectl get pods -n kube-system
+kubectl --namespace metallb-system get all
+kubectl describe svc web-svc-lb
+curl http://<LB_address>/index.html
+```
+- установлен ingress-nginx
+```
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/master/deploy/static/mandatory.yaml
+```
+- создан и применен файл nginx-lb.yaml c конфигурацией LoadBalancer сервиса
+```
+kubectl apply -f nginx-lb.yaml
+kubectl get service/ingress-nginx
+kubectl --namespace ingress-nginx get service/ingress-nginx
+curl 172.17.255.2
+```
+- создан и применен файл web-svc-headless.yaml c конфигурацией Headless сервиса
+- настроен ingress-прокси - создан манифест с ресурсом Ingress (web-ingress.yaml)
+```
+kubectl apply -f web-ingress.yaml
+kubectl describe ingress/web
+curl http://172.17.255.2/web/index.html
+```
+
+## 3.2 Как запустить проект
+в kubernetes-networks:
+```
+kubectl apply -f web-ingress.yaml
+```
+
+## 3.3 Как проверить
+в kubernetes-networks:
+```
+kubectl describe ingress/web
+```
+перейти в браузере:
+```
+http://<LB_IP>/web/index.html
 ```

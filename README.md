@@ -341,7 +341,7 @@ kubectl cluster-info
 ```
 - создана и применена конфигурация statefulset minio
 - для того, чтобы	StatefulSet был доступен изнутри кластера, создан Headless Service minio-headlessservice.yaml
-##№ 4.1.1 В рамках задания со (*)
+### 4.1.1 В рамках задания со (*)
 - в конфигурацию statefulset добалено использование secrets:
 ```
         env:

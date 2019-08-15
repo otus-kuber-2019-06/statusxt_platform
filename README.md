@@ -7,6 +7,7 @@ statusxt platform repository
 - [Homework-1 kubernetes-intro](#homework-1-kubernetes-intro)
 - [Homework-2 kubernetes-security](#homework-2-kubernetes-security)
 - [Homework-3 kubernetes-networks](#homework-3-kubernetes-networks)
+- [Homework-4 kubernetes-volumes](#homework-4-kubernetes-volumes)
 
 # Homework 1 kubernetes-intro
 ## 1.1 Что было сделано
@@ -325,4 +326,57 @@ kubectl describe ingress/web
 перейти в браузере:
 ```
 http://<LB_IP>/web/index.html
+```
+
+# Homework 4 kubernetes-volumes
+## 4.1 Что было сделано
+- установлен и запущен kind
+```
+wget https://github.com/kubernetes-sigs/kind/releases/download/v0.4.0/kind-linux-amd64
+chmod +x ./kind-darwin-amd64
+mv kind-linux-amd64 /usr/local/bin/kind
+kind create cluster
+export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+kubectl cluster-info
+```
+- создана и применена конфигурация statefulset minio
+- для того, чтобы	StatefulSet был доступен изнутри кластера, создан Headless Service minio-headlessservice.yaml
+### 4.1.1 В рамках задания со (*)
+- в конфигурацию statefulset добалено использование secrets:
+```
+        env:
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secrets
+              key: MINIO_ACCESS_KEY
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: minio-secrets
+              key: MINIO_SECRET_KEY
+```
+- создан манифест secrets minio-secrets.yaml
+```
+echo -n 'minio' | base64
+echo -n 'minio123' | base64
+kubectl apply -f minio-secrets.yaml
+kubectl apply -f minio-statefulset.yaml
+get secret minio-secrets -o yaml
+```
+
+## 4.2 Как запустить проект
+в kubernetes-volumes:
+```
+kubectl apply -f minio-statefulset.yaml
+kubectl apply -f minio-headless-service.yaml
+```
+
+## 4.3 Как проверить
+```
+kubectl get pods
+kubectl get statefulsets
+kubectl get pv
+kubectl get pvc
+kubectl get services
 ```

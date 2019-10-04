@@ -8,6 +8,7 @@ statusxt platform repository
 - [Homework-2 kubernetes-security](#homework-2-kubernetes-security)
 - [Homework-3 kubernetes-networks](#homework-3-kubernetes-networks)
 - [Homework-4 kubernetes-volumes](#homework-4-kubernetes-volumes)
+- [Homework-5 kubernetes-storage](#homework-4-kubernetes-storage)
 
 # Homework 1 kubernetes-intro
 ## 1.1 Что было сделано
@@ -379,4 +380,46 @@ kubectl get statefulsets
 kubectl get pv
 kubectl get pvc
 kubectl get services
+```
+
+# Homework 5 kubernetes-storage
+## 5.1 Что было сделано
+- создан cluster.yaml
+- запущен kind
+```
+kind create cluster --config cluster/cluster.yaml
+export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
+```
+- установлен CSI Host Path Driver
+```
+git clone https://github.com/kubernetes-csi/csi-driver-host-path.git
+./csi-driver-host-path/deploy/kubernetes-1.15/deploy-hostpath.sh
+kubectl api-resources | grep volumesnapshots
+```
+- создан объект StorageClass c именем csi-hostpath-sc
+- создан объект PVC c именем storage-pvc
+- создан объект Pod c именем storage-pod
+```
+kubectl apply -f hw/01-sc.yaml
+kubectl get sc
+kubectl get volumesnapshotclass
+kubectl apply -f hw/02-pvc.yaml
+kubectl get pvc
+kubectl apply -f hw/03-pod-pvc.yaml
+kubectl get pods
+```
+
+## 5.2 Как запустить проект
+в kubernetes-storage:
+```
+kubectl apply -f hw/
+```
+
+## 5.3 Как проверить
+```
+kubectl get sc
+kubectl get volumesnapshotclass
+kubectl get pvc
+kubectl get pods
+kubectl describe pods/storage-pod
 ```

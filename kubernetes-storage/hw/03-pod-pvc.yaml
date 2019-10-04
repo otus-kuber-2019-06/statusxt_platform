@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: storage-pod
+  labels:
+    name: storage-pod
+spec:
+  restartPolicy: Always
+  containers:
+    - name: storage-pod
+      image: ubuntu
+      command: ["/bin/bash", "-ec", "while :; do sleep 2; done"]
+      volumeMounts:
+        - name: vol
+          mountPath: /data
+  volumes:
+    - name: vol
+      persistentVolumeClaim:
+        claimName: storage-pvc

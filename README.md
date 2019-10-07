@@ -8,7 +8,8 @@ statusxt platform repository
 - [Homework-2 kubernetes-security](#homework-2-kubernetes-security)
 - [Homework-3 kubernetes-networks](#homework-3-kubernetes-networks)
 - [Homework-4 kubernetes-volumes](#homework-4-kubernetes-volumes)
-- [Homework-5 kubernetes-storage](#homework-4-kubernetes-storage)
+- [Homework-5 kubernetes-storage](#homework-5-kubernetes-storage)
+- [Homework-6 kubernetes-debug](#homework-6-kubernetes-debug)
 
 # Homework 1 kubernetes-intro
 ## 1.1 Что было сделано

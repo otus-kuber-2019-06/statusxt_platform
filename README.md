@@ -423,3 +423,67 @@ kubectl get pvc
 kubectl get pods
 kubectl describe pods/storage-pod
 ```
+
+# Homework 6 kubernetes-debug
+## 6.1 Что было сделано
+- создан стандартный кластер в GKE из двух узлов (образ - ubuntu, network policy - enabled)
+### 6.1.1 kubectl-debug
+- установлен kubectl-debug по инструкции
+- проверен capbilities у debug контенейра
+- изменена версия образа на latest в манифесте strace/agent_daemonset.yaml
+```
+kubectl apply -f strace/agent_daemonset.yaml
+```
+### 6.1.2 iptables-tailer
+- установлены манифесты для запуска оператора netperf-operator в кластере (лежат в папке deploy в репозитории проекта)
+- запущен первый тест, результат - Status: Done
+```
+kubectl apply -f ./deploy/cr.yaml
+kubectl describe netperf.app.example.com/example
+```
+- добавлена сетевая политика для Calico, чтобы ограничить доступ к подам Netperf и включить логирование в iptables
+```
+kubectl apply -f netperf-calico-policy.yaml
+```
+- теперь, если повторно запустить тест, мы увидим, что тест висит в состоянии Started
+- проверены журналы на ноде:
+```
+root@gke-standard-cluster-1-default-pool-9cc4c6d9-hz49:~# journalctl -k | grep calico
+Oct 07 05:55:59 gke-standard-cluster-1-default-pool-9cc4c6d9-hz49 kernel: calico-packet: IN=cali754b2327413 OUT=cali5a3ff356618 MAC=ee:ee:ee:ee:ee:ee:5a:be:b1:7b:55:59:08:00 SRC=10.4.0.14 DST=10.4.0.13 LEN=60 TOS=0x00 PREC=0x00 TTL=63 ID=55072 DF PROTO=TCP SPT=32781 DPT=12865 WINDOW=28400 RES=0x00 SYN URGP=0
+Oct 07 05:56:00 gke-standard-cluster-1-default-pool-9cc4c6d9-hz49 kernel: calico-packet: IN=cali754b2327413 OUT=cali5a3ff356618 MAC=ee:ee:ee:ee:ee:ee:5a:be:b1:7b:55:59:08:00 SRC=10.4.0.14 DST=10.4.0.13 LEN=60 TOS=0x00 PREC=0x00 TTL=63 ID=55073 DF PROTO=TCP SPT=32781 DPT=12865 WINDOW=28400 RES=0x00 SYN URGP=0
+```
+- запущен iptables-tailer с помощью манифеста из репозитория проекта
+- создан отдельный сервис-аккаунт с правами на просмотр информации о подах и созданием Event ресурсов
+- создан DaemonSet iptables-tailer.yaml с исправвлениями (из сниппетов)
+- снова запустим тесты NetPerf и проверены события в кластере Kubernetes:
+```
+kubectl apply -f iptables-tailer.yaml
+kubectl delete -f ./deploy/cr.yaml
+kubectl apply -f ./deploy/cr.yaml
+describe pod netperf-server-42010a84022d
+
+Events:
+  Type     Reason      Age    From                                                        Message
+  ----     ------      ----   ----                                                        -------
+  Normal   Scheduled   2m24s  default-scheduler                                           Successfully assigned default/netperf-server-42010a84022d to gke-standard-cluster-1-default-pool-9cc4c6d9-hz49
+  Normal   Pulled      2m23s  kubelet, gke-standard-cluster-1-default-pool-9cc4c6d9-hz49  Container image "tailoredcloud/netperf:v2.7" already present on machine
+  Normal   Created     2m23s  kubelet, gke-standard-cluster-1-default-pool-9cc4c6d9-hz49  Created container
+  Normal   Started     2m23s  kubelet, gke-standard-cluster-1-default-pool-9cc4c6d9-hz49  Started container
+  Warning  PacketDrop  2m21s  kube-iptables-tailer                                        Packet dropped when receiving traffic from 10.4.0.18
+  Warning  PacketDrop  10s    kube-iptables-tailer                                        Packet dropped when receiving traffic from client (10.4.0.18)
+```
+### 6.1.3 задание со *
+- для исправления сетевой политики изменен selector - kit/netperf-calico-policy-2.yaml
+- для отображения имен Подов изменена переменная окружения POD_IDENTIFIER на name - kit/iptables-tailer-2.yaml
+
+## 6.2 Как запустить проект
+в kubernetes-debug:
+```
+kubectl apply -f kit/
+```
+
+## 6.3 Как проверить
+```
+kubectl get events -A
+kubectl describe pod --selector=app=netperf-operator
+```
